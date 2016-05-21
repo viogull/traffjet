@@ -18,18 +18,16 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Filter;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,9 +35,6 @@ import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
-import com.github.mikephil.charting.formatter.PercentFormatter;
-import com.github.mikephil.charting.highlight.Highlight;
-import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 
 import java.util.ArrayList;
@@ -64,6 +59,7 @@ public  class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
 
 
+
     private static final int DIA = 2;
     private static final int LIST = 1;
 
@@ -71,7 +67,8 @@ public  class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        ArrayList<Entry> trafficValues = new ArrayList<>();
+        ArrayList<String> trafficNames = new ArrayList<>();
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         // Create the adapter that will return a fragment for each of the three
@@ -132,8 +129,6 @@ public  class MainActivity extends AppCompatActivity {
          * The fragment argument representing the section number for this
          * fragment.
          */
-        private ScrollView scrollView;
-        private PieChart pieChart;
         private static final String ARG_SECTION_NUMBER = "section_number";
         private long dataUsageTotalLast = 0;
         private RelativeLayout relativeLayout;
@@ -143,15 +138,10 @@ public  class MainActivity extends AppCompatActivity {
         private View rootView;
         public PlaceholderFragment() {
         }
-
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
-
-
-
-
         public static PlaceholderFragment newInstance(int sectionNumber) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
@@ -160,131 +150,32 @@ public  class MainActivity extends AppCompatActivity {
             return fragment;
         }
 
+
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             int sectionNumber =  getArguments().getInt(ARG_SECTION_NUMBER); // detect page
-            if(sectionNumber == LIST)
-                 rootView = inflater.inflate(R.layout.mn_fragment, container, false);
-            else {
-                rootView = inflater.inflate(R.layout.diag, container, false);
-                pieChart = (PieChart) rootView.findViewById(R.id.mainChart);
-                InitAndAddDataToPieChart();
-            }
+            rootView = inflater.inflate(R.layout.mn_fragment, container, false);
             relativeLayout = (RelativeLayout) rootView.findViewById(R.id.relativefragmentlayout);
             listView = (ListView) rootView.findViewById(R.id.listView);
-            listView.setOnTouchListener(new View.OnTouchListener() {
-                // Setting on Touch Listener for handling the touch inside ScrollView
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    // Disallow the touch request for parent scroll on touch of child view
-                    v.getParent().requestDisallowInterceptTouchEvent(true);
-                    return false;
-                }
-            });
-            setListViewHeightBasedOnChildren(listView);
             ActivityManager manager = (ActivityManager) getActivity().getSystemService(ACTIVITY_SERVICE);
             List<ActivityManager.RunningAppProcessInfo> runningProcess = manager.getRunningAppProcesses();
             handler = new Handler();
-            long t = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes();
             if (TrafficStats.getTotalRxBytes() != TrafficStats.UNSUPPORTED && TrafficStats.getTotalTxBytes() != TrafficStats.UNSUPPORTED) {
                 handler.postDelayed(runnable, 0);
-
-
                 initAdapter(getActivity().getApplicationContext(), sectionNumber);
                 listView = (ListView) rootView.findViewById(R.id.listView);
                 listView.setAdapter(adapterApplications);
             } else {
                 Toast.makeText(getActivity().getApplicationContext(),
                         "UNSUPPORTED", Toast.LENGTH_LONG).show();
-
             }
             if(runningProcess != null && runningProcess.size() > 0)
             {
-            }
+        }
             else
                 Toast.makeText(getActivity().getApplicationContext(), "No application is running", Toast.LENGTH_LONG).show();
-
-
-
-
-
-
             return rootView;
-        }
-
-
-
-        public void InitAndAddDataToPieChart()
-        {
-            pieChart.setUsePercentValues(false);
-            pieChart.setDescription("Apps total data usage");
-            pieChart.setDrawHoleEnabled(true);
-            pieChart.setHoleRadius(7);
-            pieChart.setTransparentCircleRadius(10);
-            pieChart.setRotation(0);
-            pieChart.setRotationEnabled(true);
-
-
-
-
-            pieChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
-                @Override
-                public void onValueSelected(Entry e, int dataSetIndex, Highlight h) {
-
-                }
-
-                @Override
-                public void onNothingSelected() {
-
-                }
-            });
-
-
-            ArrayList<Entry> trafficValues = new ArrayList<>();
-            ArrayList<String> trafficNames = new ArrayList<>();
-            TraffjetAppList list = new TraffjetAppList(getActivity().getApplicationContext());
-            List<TraffjetAppItem> appList = list.getList();
-            int i = 0;
-            for(TraffjetAppItem app : appList)
-            {
-                trafficValues.add(new Entry(app.getTotalUsageKb(),i));
-                trafficNames.add(app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()));
-                PieDataSet set = new PieDataSet(trafficValues,"");
-                set.setSliceSpace(3);
-                set.setSelectionShift(5);
-
-                ArrayList<Integer> colors = new ArrayList<Integer>();
-                for (int c : ColorTemplate.VORDIPLOM_COLORS)
-                    colors.add(c);
-                for (int c : ColorTemplate.JOYFUL_COLORS)
-                    colors.add(c);
-                for (int c : ColorTemplate.COLORFUL_COLORS)
-                    colors.add(c);
-                for (int c : ColorTemplate.LIBERTY_COLORS)
-                    colors.add(c);
-                for (int c : ColorTemplate.PASTEL_COLORS)
-                    colors.add(c);
-                colors.add(ColorTemplate.getHoloBlue());
-                set.setColors(colors);
-
-                PieData data = new PieData(trafficNames, set);
-                data.setValueFormatter(new PercentFormatter());
-                data.setValueTextSize(10f);
-                data.setValueTextColor(Color.GRAY);
-
-                pieChart.setData(data);
-
-                pieChart.highlightValues(null);
-                pieChart.animateX(1000);
-                pieChart.animateY(1000);
-
-                pieChart.invalidate();
-
-            }
-
-
-
         }
 
 
@@ -300,35 +191,9 @@ public  class MainActivity extends AppCompatActivity {
                     dataUsageTotalLast = total;
                     updateAdapter();
                 }
-                handler.postDelayed(runnable, 5000);
+                handler.postDelayed(runnable, 50000);
             }
         };
-
-
-
-        public static void setListViewHeightBasedOnChildren(ListView listView) {
-            ListAdapter listAdapter = listView.getAdapter();
-            if (listAdapter == null)
-                return;
-
-            int desiredWidth = View.MeasureSpec.makeMeasureSpec(listView.getWidth(), View.MeasureSpec.UNSPECIFIED);
-            int totalHeight = 0;
-            View view = null;
-            for (int i = 0; i < listAdapter.getCount(); i++) {
-                view = listAdapter.getView(i, view, listView);
-                if (i == 0)
-                    view.setLayoutParams(new ViewGroup.LayoutParams(desiredWidth, ViewPager.LayoutParams.WRAP_CONTENT));
-
-                view.measure(desiredWidth, View.MeasureSpec.UNSPECIFIED);
-                totalHeight += view.getMeasuredHeight();
-            }
-            ViewGroup.LayoutParams params = listView.getLayoutParams();
-            params.height = totalHeight + (listView.getDividerHeight() * (listAdapter.getCount() - 1));
-            listView.setLayoutParams(params);
-        }
-
-
-
 
 
         public void initAdapter(final Context context, final int page_depend) {
@@ -384,7 +249,6 @@ public  class MainActivity extends AppCompatActivity {
                 }
             }
         }
-
         public void updateAdapter() {
             for (int i = 0, l = adapterApplications.getCount(); i < l; i++) {
                 TraffjetAppItem app = adapterApplications.getItem(i);
@@ -399,42 +263,6 @@ public  class MainActivity extends AppCompatActivity {
             });
             adapterApplications.notifyDataSetChanged();
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     /**
@@ -442,18 +270,109 @@ public  class MainActivity extends AppCompatActivity {
      * one of the sections/tabs/pages.
      */
 
+    public static class StatisticFragment extends Fragment {
+        /**
+         * The fragment argument representing the section number for this
+         * fragment.
+         */
+        private PieChart pieChart;
+        private static final String ARG_SECTION_NUMBER = "section_number";
+        private View rootView;
+        private ListView list;
+        private ArrayAdapter<TraffjetAppItem> adapter;
+
+        public StatisticFragment() {
+        }
+        /**
+         * Returns a new instance of this fragment for the given section
+         * number.
+         */
+        public static StatisticFragment newInstance(int sectionNumber) {
+            StatisticFragment fragment = new StatisticFragment();
+            Bundle args = new Bundle();
+            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
+            fragment.setArguments(args);
+            return fragment;
+        }
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            int sectionNumber =  getArguments().getInt(ARG_SECTION_NUMBER); // detect page
+                rootView = inflater.inflate(R.layout.diag, container, false);
+                pieChart = (PieChart) rootView.findViewById(R.id.mainChart);
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        InitAndAddDataToPieChart();
+                    }
+                });
+                thread.start();
+            return rootView;
+        }
+        public void InitAndAddDataToPieChart()
+        {
+            ArrayList<String> trafficNames = new ArrayList<>();
+            ArrayList<Entry> trafficValues = new ArrayList<>();
+
+
+
+            ArrayList<TraffjetAppItem> list = new ArrayList<>();
+            for (ApplicationInfo app : getActivity().getBaseContext().getPackageManager().getInstalledApplications(0)) {
+                TraffjetAppItem item = new TraffjetAppItem(app);
+                item.setMobileTraffic(false);
+                list.add(item);
+            }
+
+
+            pieChart.invalidate();
+            pieChart.setDrawHoleEnabled(true);
+            pieChart.setHoleRadius(7);
+            pieChart.setTransparentCircleRadius(10);
+            float bts;
+            int i = 0;
+            Log.d("", "Cycle started, shown:: " + pieChart.isShown());
+            for(TraffjetAppItem app : list) {
+                bts = app.getTotalUsageKb();
+                if(bts!=0) {
+                    trafficValues.add(new Entry(app.getTotalUsageKb()/1024, i));
+                    trafficNames.add(app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()));
+                }
+                Log.d("DATATAG", "name: " +  app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()) +
+                " traffic: "  + app.getTotalUsageKb());
+                i++;
+            }
 
 
 
 
 
 
+                PieDataSet set = new PieDataSet(trafficValues, "");
+                set.setColors(ColorTemplate.COLORFUL_COLORS);
+                PieData data = new PieData(trafficNames, set);
+                data.setValueTextSize(8f);
+                data.setValueTextColor(Color.BLACK);
+                pieChart.setData(data);
+
+            getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        pieChart.highlightValues(null);
+                        pieChart.animateX(5000);
+                        pieChart.animateY(5000);
+                        Log.d("DATATAG SHOW", "isShown: " + pieChart.isShown());
+                        pieChart.invalidate();
+                    }
+                });
 
 
+        }
 
-
-
-
+    }
+    /**
+     * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
+     * one of the sections/tabs/pages.
+     */
 
 
 
@@ -470,7 +389,12 @@ public  class MainActivity extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            return PlaceholderFragment.newInstance(position + 1);
+
+            switch (position) {
+                case 0: return PlaceholderFragment.newInstance(position+1);
+                case 1: return StatisticFragment.newInstance(position+1);
+            }
+            return null;
         }
 
         @Override
@@ -490,6 +414,8 @@ public  class MainActivity extends AppCompatActivity {
             return null;
         }
     }
+
+
 
 
 }

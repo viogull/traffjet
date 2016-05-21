@@ -16,7 +16,7 @@ public class TraffjetAppList {
     private Timer mTimer;
     private TimerTask mTask;
 
-    private int APP_UPDATE_INTERVAL = 5000;
+    private int APP_UPDATE_INTERVAL = 50000;
 
     private boolean isWifiEnabled = false;
     private boolean isMobileEnabled = false;
@@ -62,7 +62,6 @@ public class TraffjetAppList {
             for (ApplicationInfo app : mContext.getPackageManager().getInstalledApplications(0)) {
                 TraffjetAppItem item = new TraffjetAppItem(app);
                 item.setMobileTraffic(isMobileEnabled);
-
                 mApplicationItemList.add(item);
             }
         }
@@ -76,6 +75,7 @@ public class TraffjetAppList {
     public List<TraffjetAppItem> getList() {
         return mApplicationItemList;
     }
+
 
     public boolean isConnectedWifi(){
         ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
