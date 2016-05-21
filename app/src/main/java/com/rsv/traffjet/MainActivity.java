@@ -35,6 +35,8 @@ import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.highlight.Highlight;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
 
 import java.util.ArrayList;
@@ -311,7 +313,7 @@ public  class MainActivity extends AppCompatActivity {
         }
         public void InitAndAddDataToPieChart()
         {
-            ArrayList<String> trafficNames = new ArrayList<>();
+            final ArrayList<String> trafficNames = new ArrayList<>();
             ArrayList<Entry> trafficValues = new ArrayList<>();
 
 
@@ -339,16 +341,47 @@ public  class MainActivity extends AppCompatActivity {
                 }
                 Log.d("DATATAG", "name: " +  app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()) +
                 " traffic: "  + app.getTotalUsageKb());
+                if(trafficNames.size()>7)
+                    break;
                 i++;
             }
-
+            pieChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+                @Override
+                public void onValueSelected(Entry e, int dataSetIndex, Highlight h) {
+                    if (e == null)
+                        return;
+                    Toast.makeText(getActivity().getApplicationContext(),
+                            trafficNames.get(e.getXIndex()) + " = " + e.getVal() + "", Toast.LENGTH_SHORT).show();
+                }
+                @Override
+                public void onNothingSelected() {
+                }
+            });
 
 
 
 
 
                 PieDataSet set = new PieDataSet(trafficValues, "");
-                set.setColors(ColorTemplate.COLORFUL_COLORS);
+            ArrayList<Integer> colors = new ArrayList<Integer>();
+
+            for (int c : ColorTemplate.VORDIPLOM_COLORS)
+                colors.add(c);
+
+            for (int c : ColorTemplate.JOYFUL_COLORS)
+                colors.add(c);
+
+            for (int c : ColorTemplate.COLORFUL_COLORS)
+                colors.add(c);
+
+            for (int c : ColorTemplate.LIBERTY_COLORS)
+                colors.add(c);
+
+            for (int c : ColorTemplate.PASTEL_COLORS)
+                colors.add(c);
+
+            colors.add(ColorTemplate.getHoloBlue());
+                set.setColors(colors);
                 PieData data = new PieData(trafficNames, set);
                 data.setValueTextSize(8f);
                 data.setValueTextColor(Color.BLACK);
