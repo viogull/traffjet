@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.TrafficStats;
 import android.os.Bundle;
@@ -33,7 +34,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.formatter.PercentFormatter;
+import com.github.mikephil.charting.highlight.Highlight;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
+import com.github.mikephil.charting.utils.ColorTemplate;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -55,8 +64,8 @@ public  class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
 
 
-    private static final int MOBILENETW = 2;
-    private static final int WIFINETW = 1;
+    private static final int DIA = 2;
+    private static final int LIST = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -131,7 +140,7 @@ public  class MainActivity extends AppCompatActivity {
         private ListView listView;
         private ArrayAdapter<TraffjetAppItem> adapterApplications;
         private Handler handler;
-
+        private View rootView;
         public PlaceholderFragment() {
         }
 
@@ -154,10 +163,15 @@ public  class MainActivity extends AppCompatActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.mn_fragment, container, false);
-
+            int sectionNumber =  getArguments().getInt(ARG_SECTION_NUMBER); // detect page
+            if(sectionNumber == LIST)
+                 rootView = inflater.inflate(R.layout.mn_fragment, container, false);
+            else {
+                rootView = inflater.inflate(R.layout.diag, container, false);
+                pieChart = (PieChart) rootView.findViewById(R.id.mainChart);
+                InitAndAddDataToPieChart();
+            }
             relativeLayout = (RelativeLayout) rootView.findViewById(R.id.relativefragmentlayout);
-           // pieChart = (PieChart) rootView.findViewById(R.id.mainChart);
             listView = (ListView) rootView.findViewById(R.id.listView);
             listView.setOnTouchListener(new View.OnTouchListener() {
                 // Setting on Touch Listener for handling the touch inside ScrollView
@@ -172,10 +186,7 @@ public  class MainActivity extends AppCompatActivity {
             ActivityManager manager = (ActivityManager) getActivity().getSystemService(ACTIVITY_SERVICE);
             List<ActivityManager.RunningAppProcessInfo> runningProcess = manager.getRunningAppProcesses();
             handler = new Handler();
-
-
-            int sectionNumber =  getArguments().getInt(ARG_SECTION_NUMBER); // detect page
-
+            long t = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes();
             if (TrafficStats.getTotalRxBytes() != TrafficStats.UNSUPPORTED && TrafficStats.getTotalTxBytes() != TrafficStats.UNSUPPORTED) {
                 handler.postDelayed(runnable, 0);
 
@@ -200,6 +211,80 @@ public  class MainActivity extends AppCompatActivity {
 
 
             return rootView;
+        }
+
+
+
+        public void InitAndAddDataToPieChart()
+        {
+            pieChart.setUsePercentValues(false);
+            pieChart.setDescription("Apps total data usage");
+            pieChart.setDrawHoleEnabled(true);
+            pieChart.setHoleRadius(7);
+            pieChart.setTransparentCircleRadius(10);
+            pieChart.setRotation(0);
+            pieChart.setRotationEnabled(true);
+
+
+
+
+            pieChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+                @Override
+                public void onValueSelected(Entry e, int dataSetIndex, Highlight h) {
+
+                }
+
+                @Override
+                public void onNothingSelected() {
+
+                }
+            });
+
+
+            ArrayList<Entry> trafficValues = new ArrayList<>();
+            ArrayList<String> trafficNames = new ArrayList<>();
+            TraffjetAppList list = new TraffjetAppList(getActivity().getApplicationContext());
+            List<TraffjetAppItem> appList = list.getList();
+            int i = 0;
+            for(TraffjetAppItem app : appList)
+            {
+                trafficValues.add(new Entry(app.getTotalUsageKb(),i));
+                trafficNames.add(app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()));
+                PieDataSet set = new PieDataSet(trafficValues,"");
+                set.setSliceSpace(3);
+                set.setSelectionShift(5);
+
+                ArrayList<Integer> colors = new ArrayList<Integer>();
+                for (int c : ColorTemplate.VORDIPLOM_COLORS)
+                    colors.add(c);
+                for (int c : ColorTemplate.JOYFUL_COLORS)
+                    colors.add(c);
+                for (int c : ColorTemplate.COLORFUL_COLORS)
+                    colors.add(c);
+                for (int c : ColorTemplate.LIBERTY_COLORS)
+                    colors.add(c);
+                for (int c : ColorTemplate.PASTEL_COLORS)
+                    colors.add(c);
+                colors.add(ColorTemplate.getHoloBlue());
+                set.setColors(colors);
+
+                PieData data = new PieData(trafficNames, set);
+                data.setValueFormatter(new PercentFormatter());
+                data.setValueTextSize(10f);
+                data.setValueTextColor(Color.GRAY);
+
+                pieChart.setData(data);
+
+                pieChart.highlightValues(null);
+                pieChart.animateX(1000);
+                pieChart.animateY(1000);
+
+                pieChart.invalidate();
+
+            }
+
+
+
         }
 
 
@@ -273,6 +358,7 @@ public  class MainActivity extends AppCompatActivity {
                     );
                     tvAppName.setText(app.getApplicationLabel(context.getPackageManager()));
                     tvAppTraffic.setText(Integer.toString(app.getTotalUsageKb()) + " Kb");
+
 //                    if(page_depend==WIFINETW)
 //                        tvAppTraffic.setText(Integer.toString(app.getWifiKb()) + " Kb");
 //                    else
@@ -355,6 +441,25 @@ public  class MainActivity extends AppCompatActivity {
      * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
      * one of the sections/tabs/pages.
      */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         public SectionsPagerAdapter(FragmentManager fm) {
@@ -377,9 +482,9 @@ public  class MainActivity extends AppCompatActivity {
         public CharSequence getPageTitle(int position) {
             switch (position) {
                 case 0:
-                    return "Wi-Fi";
+                    return "Apps usage";
                 case 1:
-                    return "Mobile Networks";
+                    return "Stats in diagrams";
 
             }
             return null;

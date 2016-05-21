@@ -40,15 +40,10 @@ public class TraffjetAppItem {
     {
         long delta_tx = TrafficStats.getUidTxBytes(applicationInfo.uid) - tx;
         long delta_rx = TrafficStats.getUidRxBytes(applicationInfo.uid) - rx;
-
-
         tx = TrafficStats.getUidTxBytes(applicationInfo.uid);
         rx = TrafficStats.getUidRxBytes(applicationInfo.uid);
-
-
         current_tx = current_tx + delta_tx;
         current_rx = current_rx + delta_rx;
-
         if(isMobile == true) {
             mobile_tx = mobile_tx + delta_tx;
             mobile_rx = mobile_rx + delta_rx;
@@ -68,7 +63,8 @@ public class TraffjetAppItem {
     }
 
     public int getTotalUsageKb() {
-        return Math.round((tx + rx)/ 1024);
+       // return Math.round((tx + rx)/ 1024);
+        return Math.round((TrafficStats.getUidRxBytes(applicationInfo.uid) + TrafficStats.getUidTxBytes(applicationInfo.uid))/1000);
     }
 
     public int getWifiKb() {
