@@ -1,6 +1,13 @@
 package com.rsv.traffjet;
 
+import android.app.ActivityManager;
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.net.TrafficStats;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -13,21 +20,24 @@ import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Filter;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.PieChart;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.PieData;
-import com.github.mikephil.charting.data.PieDataSet;
-import com.github.mikephil.charting.utils.ColorTemplate;
 
-import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public  class MainActivity extends AppCompatActivity {
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -58,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
         mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
-
         // Set up the ViewPager with the sections adapter.
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
@@ -70,8 +79,10 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Traffjet is updating and analyzing data...", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Traffjet Mobile Data Control Activating", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
+
+
             }
         });
 
@@ -113,9 +124,13 @@ public class MainActivity extends AppCompatActivity {
          * fragment.
          */
         private ScrollView scrollView;
-        private RelativeLayout relativeLayout;
         private PieChart pieChart;
         private static final String ARG_SECTION_NUMBER = "section_number";
+        private long dataUsageTotalLast = 0;
+        private RelativeLayout relativeLayout;
+        private ListView listView;
+        private ArrayAdapter<TraffjetAppItem> adapterApplications;
+        private Handler handler;
 
         public PlaceholderFragment() {
         }
@@ -124,6 +139,10 @@ public class MainActivity extends AppCompatActivity {
          * Returns a new instance of this fragment for the given section
          * number.
          */
+
+
+
+
         public static PlaceholderFragment newInstance(int sectionNumber) {
             PlaceholderFragment fragment = new PlaceholderFragment();
             Bundle args = new Bundle();
@@ -137,49 +156,195 @@ public class MainActivity extends AppCompatActivity {
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.mn_fragment, container, false);
 
-
-            scrollView = (ScrollView) rootView.findViewById(R.id.scrollView);
             relativeLayout = (RelativeLayout) rootView.findViewById(R.id.relativefragmentlayout);
-            pieChart = (PieChart) rootView.findViewById(R.id.mainChart);
-
-
-
-            int sectionNumber =  getArguments().getInt(ARG_SECTION_NUMBER);
-            switch (sectionNumber)
-            {
-                case (WIFINETW) :
-                {
-                    Toast.makeText(rootView.getContext(),"WIFI",Toast.LENGTH_LONG).show();
-                    ArrayList<Entry> arrayList = new ArrayList<>();
-                    arrayList.add(new Entry(4f,0));
-                    arrayList.add(new Entry(64f,1));
-                    arrayList.add(new Entry(3f,2));
-                    arrayList.add(new Entry(43f,3));
-                    PieDataSet dataSet = new PieDataSet(arrayList,"label");
-                    dataSet.setColors(ColorTemplate.COLORFUL_COLORS);
-                    ArrayList<String> labels = new ArrayList<>();
-                    labels.add("First");
-                    labels.add("Sec");
-                    labels.add("Thr");
-                    labels.add("Teqhght");
-                    PieData data = new PieData(labels, dataSet);
-                    pieChart.setData(data);
-                    pieChart.setDescription("Great!");
-                    pieChart.animateY(5000);
-                    pieChart.animateX(5000);
-
-
+           // pieChart = (PieChart) rootView.findViewById(R.id.mainChart);
+            listView = (ListView) rootView.findViewById(R.id.listView);
+            listView.setOnTouchListener(new View.OnTouchListener() {
+                // Setting on Touch Listener for handling the touch inside ScrollView
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    // Disallow the touch request for parent scroll on touch of child view
+                    v.getParent().requestDisallowInterceptTouchEvent(true);
+                    return false;
                 }
-                case (MOBILENETW) :
-                {
-                    break;
-                }
+            });
+            setListViewHeightBasedOnChildren(listView);
+            ActivityManager manager = (ActivityManager) getActivity().getSystemService(ACTIVITY_SERVICE);
+            List<ActivityManager.RunningAppProcessInfo> runningProcess = manager.getRunningAppProcesses();
+            handler = new Handler();
+
+
+            int sectionNumber =  getArguments().getInt(ARG_SECTION_NUMBER); // detect page
+
+            if (TrafficStats.getTotalRxBytes() != TrafficStats.UNSUPPORTED && TrafficStats.getTotalTxBytes() != TrafficStats.UNSUPPORTED) {
+                handler.postDelayed(runnable, 0);
+
+
+                initAdapter(getActivity().getApplicationContext(), sectionNumber);
+                listView = (ListView) rootView.findViewById(R.id.listView);
+                listView.setAdapter(adapterApplications);
+            } else {
+                Toast.makeText(getActivity().getApplicationContext(),
+                        "UNSUPPORTED", Toast.LENGTH_LONG).show();
+
             }
+            if(runningProcess != null && runningProcess.size() > 0)
+            {
+            }
+            else
+                Toast.makeText(getActivity().getApplicationContext(), "No application is running", Toast.LENGTH_LONG).show();
+
+
+
 
 
 
             return rootView;
         }
+
+
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                long mobile = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes();
+                long total = TrafficStats.getTotalRxBytes() + TrafficStats.getTotalTxBytes();
+//                            tvDataUsageWiFi.setText("" + (total - mobile) / 1024 + " Kb");
+//                            tvDataUsageMobile.setText("" + mobile / 1024 + " Kb");
+//                            tvDataUsageTotal.setText("" + total / 1024 + " Kb");
+                if (dataUsageTotalLast != total) {
+                    dataUsageTotalLast = total;
+                    updateAdapter();
+                }
+                handler.postDelayed(runnable, 5000);
+            }
+        };
+
+
+
+        public static void setListViewHeightBasedOnChildren(ListView listView) {
+            ListAdapter listAdapter = listView.getAdapter();
+            if (listAdapter == null)
+                return;
+
+            int desiredWidth = View.MeasureSpec.makeMeasureSpec(listView.getWidth(), View.MeasureSpec.UNSPECIFIED);
+            int totalHeight = 0;
+            View view = null;
+            for (int i = 0; i < listAdapter.getCount(); i++) {
+                view = listAdapter.getView(i, view, listView);
+                if (i == 0)
+                    view.setLayoutParams(new ViewGroup.LayoutParams(desiredWidth, ViewPager.LayoutParams.WRAP_CONTENT));
+
+                view.measure(desiredWidth, View.MeasureSpec.UNSPECIFIED);
+                totalHeight += view.getMeasuredHeight();
+            }
+            ViewGroup.LayoutParams params = listView.getLayoutParams();
+            params.height = totalHeight + (listView.getDividerHeight() * (listAdapter.getCount() - 1));
+            listView.setLayoutParams(params);
+        }
+
+
+
+
+
+        public void initAdapter(final Context context, final int page_depend) {
+
+            adapterApplications = new ArrayAdapter<TraffjetAppItem>(context, R.layout.item_app) {
+                @Override
+                public View getView(int position, View convertView, ViewGroup parent) {
+                    TraffjetAppItem app = getItem(position);
+
+                    final View result;
+                    if (convertView == null) {
+                        result = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_app, parent, false);
+                    } else {
+                        result = convertView;
+                    }
+
+                    TextView tvAppName = (TextView) result.findViewById(R.id.tvAppName);
+                    TextView tvAppTraffic = (TextView) result.findViewById(R.id.tvAppTraffic);
+
+                    final int iconSize = Math.round(32 * getResources().getDisplayMetrics().density);
+                    tvAppName.setCompoundDrawablesWithIntrinsicBounds(
+                            //app.icon,
+                            new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(
+                                    ((BitmapDrawable) app.getIcon(context.getPackageManager())).getBitmap(), iconSize, iconSize, true)
+                            ),
+                            null, null, null
+                    );
+                    tvAppName.setText(app.getApplicationLabel(context.getPackageManager()));
+                    tvAppTraffic.setText(Integer.toString(app.getTotalUsageKb()) + " Kb");
+//                    if(page_depend==WIFINETW)
+//                        tvAppTraffic.setText(Integer.toString(app.getWifiKb()) + " Kb");
+//                    else
+//                        tvAppTraffic.setText(Integer.toString(app.getMobileKb()) + " Kb");
+                    return result;
+                }
+                @Override
+                public int getCount() {
+                    return super.getCount();
+                }
+
+                @Override
+                public Filter getFilter() {
+                    return super.getFilter();
+                }
+            };
+
+// TODO: resize icon once
+            for (ApplicationInfo app : context.getPackageManager().getInstalledApplications(0)) {
+                TraffjetAppItem item = TraffjetAppItem.create(app);
+                if(item != null) {
+                    adapterApplications.add(item);
+                }
+            }
+        }
+
+        public void updateAdapter() {
+            for (int i = 0, l = adapterApplications.getCount(); i < l; i++) {
+                TraffjetAppItem app = adapterApplications.getItem(i);
+                app.updateStats();
+            }
+
+            adapterApplications.sort(new Comparator<TraffjetAppItem>() {
+                @Override
+                public int compare(TraffjetAppItem lhs, TraffjetAppItem rhs) {
+                    return (int)(rhs.getTotalUsageKb() - lhs.getTotalUsageKb());
+                }
+            });
+            adapterApplications.notifyDataSetChanged();
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -220,4 +385,6 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
     }
+
+
 }
