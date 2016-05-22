@@ -18,6 +18,9 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Spannable;
+import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -25,6 +28,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Filter;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
@@ -38,7 +43,13 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.ColorTemplate;
+import com.stealthcopter.networktools.ARPInfo;
+import com.stealthcopter.networktools.Ping;
+import com.stealthcopter.networktools.PortScan;
+import com.stealthcopter.networktools.WakeOnLan;
+import com.stealthcopter.networktools.ping.PingResult;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -117,6 +128,10 @@ public  class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            return true;
+        }
+        if(id == R.id.app_hraph)
+        {
             return true;
         }
 
@@ -309,41 +324,38 @@ public  class MainActivity extends AppCompatActivity {
                     }
                 });
                 thread.start();
+            long mobile_txrx = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes();
+            Toast.makeText(getActivity().getApplicationContext(),
+                    "Mobile traffic " +mobile_txrx + " Bytes Totally",
+                    Toast.LENGTH_LONG).show();
             return rootView;
         }
         public void InitAndAddDataToPieChart()
         {
             final ArrayList<String> trafficNames = new ArrayList<>();
             ArrayList<Entry> trafficValues = new ArrayList<>();
-
-
-
             ArrayList<TraffjetAppItem> list = new ArrayList<>();
+
             for (ApplicationInfo app : getActivity().getBaseContext().getPackageManager().getInstalledApplications(0)) {
                 TraffjetAppItem item = new TraffjetAppItem(app);
                 item.setMobileTraffic(false);
                 list.add(item);
             }
-
-
             pieChart.invalidate();
-            pieChart.setDrawHoleEnabled(true);
-            pieChart.setHoleRadius(7);
-            pieChart.setTransparentCircleRadius(10);
             float bts;
             int i = 0;
             Log.d("", "Cycle started, shown:: " + pieChart.isShown());
             for(TraffjetAppItem app : list) {
                 bts = app.getTotalUsageKb();
-                if(bts!=0) {
-                    trafficValues.add(new Entry(app.getTotalUsageKb()/1024, i));
+                if(bts>0) {
+                    trafficValues.add(new Entry(app.getTotalUsageKb(), i));
                     trafficNames.add(app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()));
+                    Log.d("DATATAG", "name: " + app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()) +
+                            " traffic: " + app.getTotalUsageKb());
+                    i++;
                 }
-                Log.d("DATATAG", "name: " +  app.getApplicationLabel(getActivity().getApplicationContext().getPackageManager()) +
-                " traffic: "  + app.getTotalUsageKb());
                 if(trafficNames.size()>7)
                     break;
-                i++;
             }
             pieChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
                 @Override
@@ -351,7 +363,7 @@ public  class MainActivity extends AppCompatActivity {
                     if (e == null)
                         return;
                     Toast.makeText(getActivity().getApplicationContext(),
-                            trafficNames.get(e.getXIndex()) + " = " + e.getVal() + "", Toast.LENGTH_SHORT).show();
+                            trafficNames.get(e.getXIndex()) + " = " + e.getVal() + " KB", Toast.LENGTH_SHORT).show();
                 }
                 @Override
                 public void onNothingSelected() {
@@ -365,8 +377,6 @@ public  class MainActivity extends AppCompatActivity {
                 PieDataSet set = new PieDataSet(trafficValues, "");
             ArrayList<Integer> colors = new ArrayList<Integer>();
 
-            for (int c : ColorTemplate.VORDIPLOM_COLORS)
-                colors.add(c);
 
             for (int c : ColorTemplate.JOYFUL_COLORS)
                 colors.add(c);
@@ -379,18 +389,29 @@ public  class MainActivity extends AppCompatActivity {
 
             for (int c : ColorTemplate.PASTEL_COLORS)
                 colors.add(c);
-
+            for (int c : ColorTemplate.LIBERTY_COLORS)
+                colors.add(c);
+            pieChart.setDrawSliceText(false);
+            pieChart.setDescription("");
+            for (int c : ColorTemplate.PASTEL_COLORS)
+                colors.add(c);
             colors.add(ColorTemplate.getHoloBlue());
                 set.setColors(colors);
                 PieData data = new PieData(trafficNames, set);
-                data.setValueTextSize(8f);
+                data.setValueTextSize(9f);
                 data.setValueTextColor(Color.BLACK);
                 pieChart.setData(data);
+
 
             getActivity().runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         pieChart.highlightValues(null);
+                        pieChart.setDrawHoleEnabled(true);
+                        pieChart.setHoleRadius(7);
+                        pieChart.setTransparentCircleRadius(10);
+                        pieChart.setRotationAngle(0);
+                        pieChart.setRotationEnabled(true);
                         pieChart.animateX(5000);
                         pieChart.animateY(5000);
                         Log.d("DATATAG SHOW", "isShown: " + pieChart.isShown());
@@ -412,6 +433,219 @@ public  class MainActivity extends AppCompatActivity {
 
 
 
+
+
+
+    public static class NetworkToolFragment extends Fragment {
+        /**
+         * The fragment argument representing the section number for this
+         * fragment.
+         */
+        private static final String ARG_SECTION_NUMBER = "section_number";
+
+        private View rootView;
+
+        public NetworkToolFragment() {
+
+        }
+
+        /**
+         * Returns a new instance of this fragment for the given section
+         * number.
+         */
+        public static NetworkToolFragment newInstance(int sectionNumber) {
+            NetworkToolFragment fragment = new NetworkToolFragment();
+            Bundle args = new Bundle();
+            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
+            fragment.setArguments(args);
+            return fragment;
+        }
+
+        private TextView resultText;
+        private EditText editIpAdress;
+        private Button wakeonlan, ping, scanport;
+
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            int sectionNumber = getArguments().getInt(ARG_SECTION_NUMBER); // detect page
+            rootView = inflater.inflate(R.layout.tools, container, false);
+            resultText = (TextView) rootView.findViewById(R.id.resultText);
+            editIpAdress = (EditText) rootView.findViewById(R.id.editIpAddress);
+
+            scanport = (Button) rootView.findViewById(R.id.portScanButton);
+            wakeonlan = (Button) rootView.findViewById(R.id.wolButton);
+            ping = (Button) rootView.findViewById(R.id.pingButton);
+
+            ping.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Thread thread = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try
+                            {
+                                doPing();
+                            }
+                            catch (Exception ex)
+                            {
+                                ex.printStackTrace();
+
+                            }
+                        }
+                    });
+                    thread.start();
+                }
+            });
+
+
+            scanport.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    new Thread(new Runnable() {
+                        @Override public void run() {
+                            try {
+                                doPortScan();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }
+            });
+
+            wakeonlan.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    new Thread(new Runnable() {
+                        @Override public void run() {
+                            try {
+                                doWakeOnLan();
+                            }
+                            catch (Exception e){
+                                e.printStackTrace();
+
+                            }
+                        }
+                    }).start();
+                }
+            });
+
+            return rootView;
+        }
+
+        private void appendResultToText(final String text, final int text_color)
+        {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    int start = resultText.getText().length();
+                    resultText.append(text);
+                    int end = resultText.getText().length();
+                    Spannable spannableText = (Spannable) resultText.getText();
+                    spannableText.setSpan(new ForegroundColorSpan(text_color), start, end, 0);
+                    resultText.append("\n");                }
+            });
+        }
+
+        private void doPing() throws Exception
+        {
+            String ipAdress = editIpAdress.getText().toString();
+            if(TextUtils.isEmpty(ipAdress))
+            {
+                appendResultToText("Invalid IP Adress", Color.RED);
+                return;
+            }
+
+            PingResult pingResult = Ping.onAddress(ipAdress).setTimeOutMillis(1000).doPing();
+            appendResultToText("Pinging Adress: " + pingResult.getAddress().getHostAddress(), Color.BLUE);
+            appendResultToText("Hostname: " + pingResult.getAddress().getHostName(), Color.BLUE);
+            if(pingResult.getTimeTaken()==0.0f)
+                appendResultToText(String.format("%.2f ms",pingResult.getTimeTaken()),Color.RED);
+            else
+                appendResultToText(String.format("%.2f ms",pingResult.getTimeTaken()),Color.GREEN);
+
+            Ping.onAddress(ipAdress).setTimeOutMillis(1000).setTimes(5).doPing(new Ping.PingListener() {
+                @Override
+                public void onResult(PingResult pingResult) {
+                    if(pingResult.getTimeTaken()==0.0f)
+                        appendResultToText(String.format("%.2f ms",pingResult.getTimeTaken()),Color.RED);
+                    else
+                        appendResultToText(String.format("%.2f ms",pingResult.getTimeTaken()),Color.GREEN);                }
+
+                @Override
+                public void onFinished() {
+
+                }
+            });
+        }
+
+
+        public void doWakeOnLan() throws IllegalArgumentException
+        {
+            String ipAdresse = editIpAdress.getText().toString();
+            if (TextUtils.isEmpty(ipAdresse)){
+                appendResultToText("Invalid Ip Address", Color.RED);
+                return;
+            }
+
+            appendResultToText("IP address: "+ ipAdresse, Color.BLUE);
+
+            // Get mac address from IP (using arp cache)
+            String macAddress = ARPInfo.getMACFromIPAddress(ipAdresse);
+
+            if (macAddress == null){
+                appendResultToText("Could not find MAC address, cannot send WOL packet without it.", Color.RED);
+                return;
+            }
+
+            appendResultToText("MAC address: "+macAddress, Color.BLUE);
+            appendResultToText("IP address2: "+ARPInfo.getIPAddressFromMAC(macAddress), Color.BLACK);
+
+            // Send Wake on lan packed to ip/mac
+            try {
+                WakeOnLan.sendWakeOnLan(ipAdresse, macAddress);
+                appendResultToText("WOL Packet sent", Color.BLACK);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void doPortScan() throws Exception{
+            String ipAddress = editIpAdress.getText().toString();
+
+            if (TextUtils.isEmpty(ipAddress)){
+                appendResultToText("Invalid Ip Address", Color.RED);
+                return;
+            }
+
+            appendResultToText("PortScanning IP: "+ipAddress, Color.BLUE);
+            ArrayList<Integer> openPorts = PortScan.onAddress(ipAddress).setPort(21).doScan();
+
+            PortScan.onAddress(ipAddress).setTimeOutMillis(1000).setPortsAll().doScan(new PortScan.PortListener() {
+                @Override
+                public void onResult(int portNo, boolean open) {
+                    if (open) appendResultToText("Open: "+portNo, Color.GREEN);
+                }
+
+                @Override
+                public void onFinished(ArrayList<Integer> openPorts) {
+                    appendResultToText("Open Ports: "+openPorts.size(), Color.BLACK);
+                }
+            });
+
+
+        }
+
+        /**
+         * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
+         * one of the sections/tabs/pages.
+         */
+    }
+
+
+
+
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         public SectionsPagerAdapter(FragmentManager fm) {
@@ -426,13 +660,14 @@ public  class MainActivity extends AppCompatActivity {
             switch (position) {
                 case 0: return PlaceholderFragment.newInstance(position+1);
                 case 1: return StatisticFragment.newInstance(position+1);
+                case 2: return NetworkToolFragment.newInstance(position+1);
             }
             return null;
         }
 
         @Override
         public int getCount() {
-            return 2;
+            return 3;
         }
 
         @Override
@@ -442,6 +677,8 @@ public  class MainActivity extends AppCompatActivity {
                     return "Apps usage";
                 case 1:
                     return "Stats in diagrams";
+                case 2:
+                    return "Network Tools";
 
             }
             return null;

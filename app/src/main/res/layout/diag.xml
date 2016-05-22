@@ -12,8 +12,8 @@
 
         <com.github.mikephil.charting.charts.PieChart
             android:id="@+id/mainChart"
-            android:layout_width="350dp"
-            android:layout_height="360dp"
+            android:layout_width="370dp"
+            android:layout_height="370dp"
 
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
