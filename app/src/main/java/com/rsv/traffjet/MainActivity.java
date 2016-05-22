@@ -2,6 +2,7 @@ package com.rsv.traffjet;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -16,6 +17,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Spannable;
@@ -101,20 +103,31 @@ public  class MainActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View view) {
                     long t = (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes());
-                    Snackbar.make(view, "Traffjet About, Mobile Traffic: " + t + " Bytes",
+                    Snackbar.make(view, "Traffjet About " + t + " Bytes",
                             Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
-                    /*
-                    new MaterialDialog.Builder(getApplicationContext())
-                            .title("Traffjet Reactive")
-                            .content("Traffjet is a simple utils with the next functionality:" +
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setTitle("Traffjet About")
+                            .setMessage("Traffjet is a simple utils with the next functionality:" +
                                     "\n 1.Get information about application network usage with diagram."
                                     + "\n 2.Ping hosts at your networks."
                                     + "\n 3.Scan ports at selected host at your networks." +
                                     "\n 4. Wake-On-Lan Technology.")
-                            .positiveText("Continue work")
-                            .show();
-                            */
+                            .setCancelable(false)
+                            .setIcon(R.drawable.data_usage)
+                            .setNegativeButton("Continue using.",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int id) {
+                                            dialog.cancel();
+                                        }
+                                    });
+                    AlertDialog alert = builder.create();
+                    alert.show();
+
+
+
+
                 }
             });
         }
