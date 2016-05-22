@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
 
-    android:layout_width="match_parent" android:layout_height="match_parent">
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:weightSum="1">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -35,7 +36,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <Button
@@ -54,7 +55,7 @@
 
             <Button
                 android:id="@+id/wolButton"
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
 
                 android:layout_height="wrap_content"
                 android:text="Wake-on-Lan"
@@ -68,7 +69,8 @@
         android:layout_height="wrap_content"
         android:paddingBottom="@dimen/activity_horizontal_margin"
         android:clipToPadding="false"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:layout_weight="0.16">
 
         <TextView
             android:id="@+id/resultText"

@@ -2,5 +2,6 @@
     <string name="app_name">Traffjet</string>
     <string name="action_settings">Settings</string>
     <string name="section_format">Hello World from section: %1$d</string>
-
+    <string name="send" >send</string>
+    <string name="not_connected">Not Connected</string>
 </resources>

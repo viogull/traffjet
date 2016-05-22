@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+
 public  class MainActivity extends AppCompatActivity {
 
     /**
@@ -94,19 +95,29 @@ public  class MainActivity extends AppCompatActivity {
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Traffjet Mobile Data Control Activating", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-
-
-            }
-        });
-
-
-
+        final FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        if(fab!=null) {
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    long t = (TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes());
+                    Snackbar.make(view, "Traffjet About, Mobile Traffic: " + t + " Bytes",
+                            Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    /*
+                    new MaterialDialog.Builder(getApplicationContext())
+                            .title("Traffjet Reactive")
+                            .content("Traffjet is a simple utils with the next functionality:" +
+                                    "\n 1.Get information about application network usage with diagram."
+                                    + "\n 2.Ping hosts at your networks."
+                                    + "\n 3.Scan ports at selected host at your networks." +
+                                    "\n 4. Wake-On-Lan Technology.")
+                            .positiveText("Continue work")
+                            .show();
+                            */
+                }
+            });
+        }
     }
 
 
@@ -124,16 +135,6 @@ public  class MainActivity extends AppCompatActivity {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        if(id == R.id.app_hraph)
-        {
-            return true;
-        }
 
         return super.onOptionsItemSelected(item);
     }
